@@ -1,5 +1,6 @@
 .env
-__pycache__/
-tts.venv/
-*.db
 .DS_Store
+*.db
+__pycache__/
+.tts.venv/
+ideas/

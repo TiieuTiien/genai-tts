@@ -28,8 +28,9 @@ def create_srt_prompt():
                 * `END_TIME` is when the subtitle should disappear.
                 * Timestamps should not overlap.
             3.  **SUBTITLE TEXT:**
+                * **IMPORTANT: Each subtitle line must be short, around 10-15 words or not exceeds 60 characters.** This is to ensure it displays correctly on screen.
                 * The text should be a clean transcription of the speech.
-                * **IMPORTANT: Each subtitle line must be short, around 10-15 words.** This is to ensure it displays correctly on screen. If a sentence is long, you MUST split it across multiple subtitle blocks with appropriate timestamps.
+                * If a sentence is long, you MUST split it across multiple subtitle blocks with appropriate timestamps.
                 * For non-speech sounds, describe them in parentheses on their own line. For example: `(upbeat theme music)` or `(phone ringing)`.
             4.  **GENERAL RULES:**
                 * Do not use any Markdown formatting (like **bold** or *italics*).
@@ -51,6 +52,12 @@ def create_srt_prompt():
             3
             00:01:17,500 --> 00:01:24,420
             Today we have a very special topic to discuss.
+
+            ...
+            
+            10
+            00:20:386 --> 00:20:386
+            [END OF TRANSCRIPT]
 
             ---
 

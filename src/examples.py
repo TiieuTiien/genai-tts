@@ -18,7 +18,9 @@ def example_basic_usage():
     # Create video with default settings
     video_path = create_complete_video(
         input_text_path="../content/contents/sample1.txt",
-        image_path="../content/images/part1.jpg"
+        image_path="../content/images/sample_horizontal.jpg",
+        output_dir="../content/results", 
+        project_name="debug",
     )
     
     print(f"✅ Video created: {video_path}")
@@ -26,18 +28,16 @@ def example_basic_usage():
 def debug_example():
     """Debut example"""
     print("🎬 Debugging: Basic video creation")
-    # Define output paths
-    output_dir="../content/results"
-    project_name="video"
-    image_path="../content/images/part1.jpg"
-    audio_path = os.path.join(output_dir, f"{project_name}_audio.wav")
-    srt_path = os.path.join(output_dir, f"{project_name}_subtitles.srt")
-    video_path = os.path.join(output_dir, f"{project_name}_final.mp4")
+    output_dir="../content/results/"
     create_video_step(
-        image_path=image_path,
-        srt_path=srt_path,
-        audio_path=audio_path,
-        output_video_path=video_path,
+        # input_text_path="../content/contents/sample1.txt",
+        # output_dir="../content/results", 
+        # project_name="debug",
+        image_path="../content/images/sample_horizontal.jpg",
+        srt_path=f"{output_dir}{'debug_subtitles.srt'}",
+        audio_path=f"{output_dir}{'debug_audio.wav'}",
+        output_video_path=f"{output_dir}{'debug_MarkerFelt.mp4'}", 
+        duration=None,
     )
 
 def example_custom_settings():
@@ -97,7 +97,7 @@ def example_individual_modules():
         audio_path=audio_path,
         output_path=video_path,
         dimensions=(1920, 1080),
-        fps=24
+        fps=24,
     )
     
     print(f"✅ Individual modules video created: {video_path}")
