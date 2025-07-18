@@ -6,7 +6,7 @@ using the modular approach.
 """
 
 import os
-from main import create_complete_video, setup_environment, create_video_step
+from main import create_complete_video, generate_audio_step, setup_environment, create_video_step
 
 def example_basic_usage():
     """Example of basic usage with default settings."""
@@ -26,18 +26,14 @@ def example_basic_usage():
     print(f"✅ Video created: {video_path}")
 
 def debug_example():
-    """Debut example"""
+    """Debug example"""
     print("🎬 Debugging: Basic video creation")
-    output_dir="../content/results/"
-    create_video_step(
-        # input_text_path="../content/contents/sample1.txt",
-        # output_dir="../content/results", 
-        # project_name="debug",
-        image_path="../content/images/sample_horizontal.jpg",
-        srt_path=f"{output_dir}{'debug_subtitles.srt'}",
-        audio_path=f"{output_dir}{'debug_audio.wav'}",
-        output_video_path=f"{output_dir}{'debug_MarkerFelt.mp4'}", 
-        duration=None,
+    output_dir="../media/truyen"
+
+    generate_audio_step(
+        input_dir="../media/content/MDSXQLNPGNC",
+        output_dir=output_dir,
+        voice_name="Leda"
     )
 
 def example_custom_settings():

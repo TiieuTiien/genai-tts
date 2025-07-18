@@ -15,6 +15,7 @@ import os
 import sys
 import argparse
 import pathlib
+import concurrent.futures
 from dotenv import load_dotenv
 
 # Import our custom modules
@@ -39,27 +40,41 @@ def ensure_directories(paths):
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-def generate_audio_step(input_text_path, output_audio_path, voice_name="Gacrux"):
+def generate_audio_step(input_dir, output_dir, voice_name="Gacrux"):
     """Step 1: Generate audio from text using GenAI TTS.
     
     Args:
-        input_text_path: Path to the input text file
-        output_audio_path: Path where audio will be saved
+        input_dir: Path to the input directory
+        output_dir: Path where audio will be saved
         voice_name: Voice to use for TTS generation
     """
-    print(f"🎵 Step 1: Generating audio from '{input_text_path}'...")
+    print(f"🎵 Generating audio from '{input_dir}'...")
     
-    if not os.path.exists(input_text_path):
-        raise FileNotFoundError(f"Input text file not found: {input_text_path}")
+    if not os.path.exists(input_dir):
+        raise FileNotFoundError(f"Input text file not found: {input_dir}")
     
-    # Generate audio using the genai_tts module
-    generate_audio_from_text(
-        text_file_path=input_text_path,
-        output_path=output_audio_path,
-        voice_name=voice_name
-    )
+    file_names = os.listdir(input_dir)
+    file_names.sort()
+
+    tasks = [] # List to hold arguments for each generation task
+    for file_name in file_names:
+        if file_name.endswith('.txt'):
+            text_file_path = os.path.join(input_dir, file_name)
+            output_path = os.path.join(output_dir, f"{os.path.splitext(file_name)[0]}_audio.wav")
+            tasks.append((text_file_path, output_path, voice_name))
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_file = {executor.submit(generate_audio_from_text, *task_args): task_args[0] for task_args in tasks}
+
+        for future in concurrent.futures.as_completed(future_to_file):
+            text_file_path = future_to_file[future]
+            try:
+                future.result()  # Wait for the task to complete
+                print(f"✅ Audio generated successfully for: {text_file_path}")
+            except Exception as e:
+                print(f"❌ Error generating audio for {text_file_path}: {e}")
     
-    print(f"✅ Audio generated successfully: {output_audio_path}")
+    print(f"✅ Audio generated successfully: {output_dir}")
 
 def generate_subtitles_step(audio_path, output_srt_path):
     """Step 2: Generate SRT subtitles from audio.

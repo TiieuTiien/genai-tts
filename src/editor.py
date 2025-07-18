@@ -151,8 +151,8 @@ def export_video(clip, output_path, fps=24):
     print('🗂️ Output path Ok!👌')
     clip.write_videofile(output_path, fps=fps)
 
-def create_video_with_subtitles(image_path, srt_path, audio_path, output_path, 
-                               duration=10, dimensions=(1920, 1080), fps=24, auto_fix_srt=True):
+def create_video_with_subtitles(image_path, results_path, srt_path, audio_path,
+                                filename='debug', font='MarkerFelt.ttc', duration=10, dimensions=(1920, 1080), fps=24, auto_fix_srt=True):
     """Main function to create a video with subtitles.
     
     Args:
@@ -167,10 +167,14 @@ def create_video_with_subtitles(image_path, srt_path, audio_path, output_path,
     """
     # Create text generator
     text_generator = create_text_generator(
-        font_path='../fonts/MarkerFelt.ttc',
+        font_path='../fonts/' + font,
         font_size=48,
         dimensions=dimensions
     )
+    
+    srt_path = os.path.join(results_path, srt_path)
+    audio_path = os.path.join(results_path, audio_path)
+    output_path = os.path.join(results_path, f"{filename}_{font.split('.')[0]}.mp4")
     
     # Load clips
     audio_clip = load_audio_clip(audio_path, duration=duration)
@@ -187,7 +191,7 @@ def create_video_with_subtitles(image_path, srt_path, audio_path, output_path,
     final_clip = add_audio_to_video(composed_video, audio_clip)
     
     # Optional: Apply effects
-    # final_clip = apply_effects(final_clip, fade_in_duration=0.5, fade_out_duration=0.5)
+    final_clip = apply_effects(final_clip, fade_in_duration=0.5, fade_out_duration=0.5)
     
     # Export video
     export_video(final_clip, output_path, fps)
@@ -196,9 +200,11 @@ if __name__ == "__main__":
     # Configuration
     config = {
         'image_path': '../content/images/sample_horizontal.jpg',
-        'srt_path': '../content/results/debug_subtitles.srt',
-        'audio_path': '../content/results/debug_audio.wav',
-        'output_path': '../content/results/debug_commic_sans_output.mp4',
+        'results_path': '../content/results',
+        'srt_path': 'debug_subtitles.srt',
+        'audio_path': 'debug_audio.wav',
+        'filename': 'GCTLCMNTB_1',
+        'font': 'AmericanTypewriter.ttc',
         'duration': None,
         'dimensions': (1920, 1080),
         'fps': 24,
