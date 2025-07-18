@@ -4,3 +4,5 @@
 __pycache__/
 .tts.venv/
 ideas/
+channel/
+results/

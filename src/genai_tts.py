@@ -20,13 +20,15 @@ def save_binary_file(file_name, data):
 def generate_audio_from_text(text_file_path, output_path, voice_name="Gacrux", model="gemini-2.5-flash-preview-tts"):
     client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
 
-
     model = model
     filepath = pathlib.Path(text_file_path)
+
+    instruction = "Read this novel in a fluent, natural voice with a moderate, soothing pace. Pause naturally at commas and periods. Gently emphasize dialogue and key moments while maintaining a peaceful, warm tone for relaxation."
     contents = [
         types.Content(
             role="user",
             parts=[
+                types.Part.from_text(text=instruction),  # Instruction part
                 types.Part.from_bytes(
                     data=filepath.read_bytes(),
                     mime_type='text/plain',
