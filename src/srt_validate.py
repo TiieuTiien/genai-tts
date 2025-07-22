@@ -4,6 +4,36 @@ Compact SRT validator and fixer for editor support.
 
 import re
 
+def fix_timestamp(timestamp_str):
+    """Fix a single timestamp to HH:MM:SS,mmm format."""
+    if not timestamp_str:
+        return timestamp_str
+    
+    # Remove any whitespace
+    timestamp_str = timestamp_str.strip()
+    
+    # Replace dots with commas for milliseconds
+    timestamp_str = timestamp_str.replace('.', ',')
+    
+    # Split by colon and comma to get components
+    parts = timestamp_str.replace(',', ':').split(':')
+    
+    if len(parts) == 2:
+        # MM:SSS format (minutes:milliseconds)
+        return f"00:00:{parts[0].zfill(2)},{parts[1].zfill(3)}"
+    elif len(parts) == 3:
+        # MM:SS:mmm or HH:MM:SS format
+        if len(parts[2]) == 3:  # milliseconds
+            return f"00:{parts[0].zfill(2)}:{parts[1].zfill(2)},{parts[2].zfill(3)}"
+        else:  # seconds
+            return f"{parts[0].zfill(2)}:{parts[1].zfill(2)}:{parts[2].zfill(2)},000"
+    elif len(parts) == 4:
+        # HH:MM:SS:mmm or H:MM:SS:mmm
+        return f"{parts[0].zfill(2)}:{parts[1].zfill(2)}:{parts[2].zfill(2)},{parts[3].zfill(3)}"
+    
+    # If format is already correct or unrecognizable, return as is
+    return timestamp_str
+
 def fix_common_srt_issues(content):
     """Fix common SRT formatting issues."""
     lines = content.split('\n')
@@ -13,16 +43,15 @@ def fix_common_srt_issues(content):
         line = line.strip()
         
         if ' --> ' in line:
-            # Fix timestamp formats
-            # MM:mmm -> 00:MM:SS,mmm
-            line = re.sub(r'^(\d{2}):(\d{3}) --> (\d{2}):(\d{3})$', r'00:00:\1,\2 --> 00:00:\3,\4', line)
-            # MM:SS.mmm -> 00:MM:SS,mmm
-            line = re.sub(r'^(\d{2}):(\d{2})\.(\d{3}) --> (\d{2}):(\d{2})\.(\d{3})$', r'00:\1:\2,\3 --> 00:\4:\5,\6', line)
-            # MM:SS:mmm -> 00:MM:SS,mmm
-            line = re.sub(r'^(\d{2}):(\d{2}):(\d{3}) --> (\d{2}):(\d{2}):(\d{3})$', r'00:\1:\2,\3 --> 00:\4:\5,\6', line)
-            # H:MM:SS,mmm -> 0H:MM:SS,mmm
-            line = re.sub(r'^(\d):(\d{2}):(\d{2}),(\d{3}) --> (\d):(\d{2}):(\d{2}),(\d{3})$', r'0\1:\2:\3,\4 --> 0\5:\6:\7,\8', line)
-            fixed_lines.append(line)
+            # Split timestamp line and fix each timestamp
+            parts = line.split(' --> ')
+            if len(parts) == 2:
+                start_time = fix_timestamp(parts[0])
+                end_time = fix_timestamp(parts[1])
+                fixed_lines.append(f"{start_time} --> {end_time}")
+            else:
+                # Malformed arrow, keep as is
+                fixed_lines.append(line)
         elif line.isdigit():
             # Subtitle index line
             fixed_lines.append(line)
@@ -164,3 +193,21 @@ def print_validation_results(validation_result):
             print(f"       - {error}")
         if len(validation_result['errors']) > 5:
             print(f"       ... and {len(validation_result['errors']) - 5} more errors")
+
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) < 2:
+        print("Usage: python srt_validate.py <path_to_srt_file>")
+        sys.exit(1)
+    
+    srt_path = sys.argv[1]
+    result = validate_and_fix_srt(srt_path)
+    
+    print(f"Validation result for '{srt_path}':")
+    print_validation_results(result['validation_result'])
+    
+    if result['was_fixed']:
+        print(f"    ✅ SRT file was fixed and saved at: {srt_path}")
+    else:
+        print(f"    ❌ SRT file was not fixed, original content remains unchanged.")
