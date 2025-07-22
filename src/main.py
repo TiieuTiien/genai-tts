@@ -11,6 +11,7 @@ Usage:
     python main.py [--input-text TEXT_FILE] [--output-dir OUTPUT_DIR]
 """
 
+import json
 import os
 import sys
 import argparse
@@ -22,6 +23,7 @@ from dotenv import load_dotenv
 from genai_tts import generate_audio_from_text
 from subtitles_gen import generate_subtitles
 from editor import create_video_with_subtitles
+import time
 
 def setup_environment():
     """Load environment variables and check dependencies."""
@@ -49,31 +51,40 @@ def generate_audio_step(input_dir, output_dir, voice_name="Gacrux"):
         voice_name: Voice to use for TTS generation
     """
     print(f"🎵 Generating audio from '{input_dir}'...")
-    
+
     if not os.path.exists(input_dir):
         raise FileNotFoundError(f"Input text file not found: {input_dir}")
-    
+
     file_names = os.listdir(input_dir)
     file_names.sort()
 
-    tasks = [] # List to hold arguments for each generation task
+    tasks = []
     for file_name in file_names:
         if file_name.endswith('.txt'):
             text_file_path = os.path.join(input_dir, file_name)
             output_path = os.path.join(output_dir, f"{os.path.splitext(file_name)[0]}_audio.wav")
             tasks.append((text_file_path, output_path, voice_name))
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_file = {executor.submit(generate_audio_from_text, *task_args): task_args[0] for task_args in tasks}
+    max_workers = 5
+    delay_seconds = 90
 
-        for future in concurrent.futures.as_completed(future_to_file):
-            text_file_path = future_to_file[future]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for i, task_args in enumerate(tasks):
+            print(f"🚀 Starting task {i+1}/{len(tasks)}: {os.path.basename(task_args[0])}")
+            future = executor.submit(generate_audio_from_text, *task_args)
+            futures.append((future, task_args[0]))
+            if (i + 1) % max_workers == 0 and (i + 1) < len(tasks):
+                print(f"⏳ Waiting {delay_seconds} seconds to avoid rate limit...")
+                time.sleep(delay_seconds)
+
+        for future, text_file_path in futures:
             try:
-                future.result()  # Wait for the task to complete
+                future.result()
                 print(f"✅ Audio generated successfully for: {text_file_path}")
             except Exception as e:
                 print(f"❌ Error generating audio for {text_file_path}: {e}")
-    
+
     print(f"✅ Audio generated successfully: {output_dir}")
 
 def generate_subtitles_step(audio_path, output_srt_path):
