@@ -2,6 +2,7 @@
 Compact SRT validator and fixer for editor support.
 """
 
+import os
 import re
 
 def fix_timestamp(timestamp_str):
@@ -163,7 +164,11 @@ def validate_and_fix_srt(srt_path, auto_fix=True, backup_original=True):
         
         # Create backup
         if backup_original:
-            backup_path = srt_path.replace('.srt', '_backup.srt')
+            backup_path = os.path.join(os.path.dirname(srt_path), 'backup', os.path.basename(srt_path))
+            backup_path = backup_path.replace('.srt', '_backup.srt')
+            os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+
+            print(f"Creating backup at {backup_path}")
             with open(backup_path, 'w', encoding='utf-8') as f:
                 f.write(content)
         
