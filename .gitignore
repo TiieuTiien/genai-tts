@@ -3,6 +3,8 @@
 *.db
 __pycache__/
 .tts.venv/
-ideas/
 channel/
 results/
+truyen/
+subtitles/
+audios/

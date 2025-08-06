@@ -24,10 +24,7 @@ def fix_timestamp(timestamp_str):
         return f"00:00:{parts[0].zfill(2)},{parts[1].zfill(3)}"
     elif len(parts) == 3:
         # MM:SS:mmm or HH:MM:SS format
-        if len(parts[2]) == 3:  # milliseconds
-            return f"00:{parts[0].zfill(2)}:{parts[1].zfill(2)},{parts[2].zfill(3)}"
-        else:  # seconds
-            return f"{parts[0].zfill(2)}:{parts[1].zfill(2)}:{parts[2].zfill(2)},000"
+        return f"00:{parts[0].zfill(2)}:{parts[1].zfill(2)},{parts[2].zfill(3)}"
     elif len(parts) == 4:
         # HH:MM:SS:mmm or H:MM:SS:mmm
         return f"{parts[0].zfill(2)}:{parts[1].zfill(2)}:{parts[2].zfill(2)},{parts[3].zfill(3)}"

@@ -1,7 +1,7 @@
 from moviepy import TextClip, CompositeVideoClip, vfx, ImageClip, VideoFileClip, ColorClip, AudioFileClip
 from moviepy.video.tools.subtitles import SubtitlesClip
 import os
-from srt_validate import validate_and_fix_srt, print_validation_results
+from services.srt_validate import validate_and_fix_srt, print_validation_results
 
 def load_audio_clip(audio_path, duration=None):
     """Loads an audio clip with optional duration limit.

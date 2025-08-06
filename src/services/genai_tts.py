@@ -4,6 +4,7 @@
 import mimetypes
 import os
 import pathlib
+import shutil
 import struct
 from dotenv import load_dotenv
 from google import genai
@@ -17,8 +18,8 @@ def save_binary_file(file_name, data):
     f.close()
     print(f"File saved to: {file_name}")
 
-def generate_audio_from_text(text_file_path, output_path, voice_name="Gacrux", model="gemini-2.5-flash-preview-tts"):
-    client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+def generate_audio_from_text(text_file_path, output_path, voice_name="Leda", model="gemini-2.5-flash-preview-tts"):
+    client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY_TTS'))
 
     model = model
     filepath = pathlib.Path(text_file_path)
@@ -90,7 +91,9 @@ def generate_audio_from_text(text_file_path, output_path, voice_name="Gacrux", m
     # Save the final combined audio file
     if all_audio_data:
         save_binary_file(output_path, all_audio_data)
-        print(f"✅ Final audio saved to: {output_path}")
+        backup_path = os.path.join(os.path.dirname(text_file_path), "backup", os.path.basename(text_file_path))
+        shutil.move(text_file_path, backup_path)  # Ensure the file is saved correctly
+        print(f"✅ Moved text file to: {backup_path}")
         return output_path
     else:
         print("❌ No audio data received")

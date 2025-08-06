@@ -135,8 +135,6 @@ def merge_srt_files(audio_dir: str, srt_dir: str, output_path: str) -> None:
         output_path: Path for the merged SRT file
     """
     print(f"🔄 Merging SRT files from '{srt_dir}' based on audio in '{audio_dir}'...")
-    output_path_name = os.path.splitext(output_path)[0].split("/")[-1]
-    print(f"Output will be saved to: {output_path_name}\n")
 
     if not os.path.exists(audio_dir):
         raise FileNotFoundError(f"Audio directory not found: {audio_dir}")
@@ -176,7 +174,7 @@ def merge_srt_files(audio_dir: str, srt_dir: str, output_path: str) -> None:
         subtitles = parse_srt_file(srt_path, audio_duration)
 
         if subtitles:
-            time_stamp = (format_chapter_time(current_offset + subtitles[0][0]), audio_file.split('_')[0])
+            time_stamp = (format_chapter_time(current_offset + subtitles[0][0]), audio_file.split('.')[0])
             print(f"☝️  First subtitle: {time_stamp}")
             time_stamps.append(time_stamp)
 
@@ -199,10 +197,15 @@ def merge_srt_files(audio_dir: str, srt_dir: str, output_path: str) -> None:
         # Move offset to end of current audio + gap
         current_offset += audio_duration
 
+    output_path_name = ''.join(audio_files[0].split('.')[0] + " - " + audio_files[-1].split('.')[0])
+    print(f"Output will be saved to: {output_path_name}\n")
+
     if time_stamps:
         with open(os.path.join(srt_dir, f"timestamps_{output_path_name}.txt"), 'w', encoding='utf-8') as f:
             for line in time_stamps:
                 f.write(" ".join(line) + "\n")
+
+    output_path = os.path.join(output_path, f"{output_path_name}.srt")
 
     # Write merged SRT file
     if merged_subtitles:
@@ -241,8 +244,8 @@ def main():
 
 if __name__ == "__main__":
     # Example usage with your workspace structure
-    audio_dir = "./audios"
-    srt_dir = "./subtitles"
-    output_path = "./subtitles/Chương 1 - Chương 50.srt"
+    audio_dir = "../../results/MDSXQLNPLGNC/audios"
+    srt_dir = "../../results/MDSXQLNPLGNC/subtitles"
+    output_path = "../../results/MDSXQLNPLGNC/subtitles/"
 
     merge_srt_files(audio_dir, srt_dir, output_path)

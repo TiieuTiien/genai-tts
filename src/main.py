@@ -17,21 +17,23 @@ import sys
 import argparse
 import pathlib
 import concurrent.futures
+import time
+
 from dotenv import load_dotenv
 
 # Import our custom modules
-from genai_tts import generate_audio_from_text
-from subtitles_gen import generate_subtitles
-from editor import create_video_with_subtitles
-import time
+from services.genai_tts import generate_audio_from_text
+from services.subtitles_gen import generate_subtitles
+from services.editor import create_video_with_subtitles
+from utils.gemini_logger import log_gemini_error
 
 def setup_environment():
     """Load environment variables and check dependencies."""
     load_dotenv()
     
-    api_key = os.getenv('GOOGLE_API_KEY')
+    api_key = os.getenv('GOOGLE_API_KEY_SUBTITLES')
     if not api_key:
-        raise ValueError("GOOGLE_API_KEY not found in environment variables. Make sure it's set in your .env file")
+        raise ValueError("GOOGLE_API_KEY_SUBTITLES not found in environment variables. Make sure it's set in your .env file")
     
     return api_key
 
@@ -42,7 +44,7 @@ def ensure_directories(paths):
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-def generate_audio_step(input_dir, output_dir, voice_name="Gacrux"):
+def generate_audio_step(input_dir, output_dir, max_workers=3, delay_seconds=70, voice_name="Leda"):
     """Step 1: Generate audio from text using GenAI TTS.
     
     Args:
@@ -62,50 +64,93 @@ def generate_audio_step(input_dir, output_dir, voice_name="Gacrux"):
     for file_name in file_names:
         if file_name.endswith('.txt'):
             text_file_path = os.path.join(input_dir, file_name)
-            output_path = os.path.join(output_dir, f"{os.path.splitext(file_name)[0]}_audio.wav")
+            output_path = os.path.join(output_dir, f"{os.path.splitext(file_name)[0]}.wav")
+            # print(f"Text file: {text_file_path} -> Audio output: {output_path}")
             tasks.append((text_file_path, output_path, voice_name))
 
-    max_workers = 5
-    delay_seconds = 90
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for i in range(0, len(tasks), max_workers):
+            batch_start_time = time.time()
+            batch = tasks[i:i + max_workers]
+            futures = []
+            
+            # Submit batch of tasks
+            for j, task_args in enumerate(batch):
+                print(f"🚀 Starting task {i+j+1}/{len(tasks)}: {os.path.basename(task_args[0])}")
+                future = executor.submit(generate_audio_from_text, *task_args)
+                futures.append((future, task_args[0]))
+            
+            # Wait for all tasks in the batch to complete
+            for future, text_file_path in futures:
+                try:
+                    future.result()
+                    print(f"✅ Audio generated successfully for: {text_file_path}")
+                except Exception as e:
+                    log_gemini_error(e, context="generating audio", file_path=text_file_path)
+            
+            # Calculate elapsed time and wait if necessary
+            elapsed_time = time.time() - batch_start_time
+            if elapsed_time < delay_seconds and i + max_workers < len(tasks):
+                remaining_wait = delay_seconds - elapsed_time
+                print(f"⏳ Batch completed in {elapsed_time:.1f}s. Waiting {remaining_wait:.1f}s more to reach {delay_seconds}s interval...")
+                time.sleep(remaining_wait)
+            elif i + max_workers < len(tasks):
+                print(f"⏳ Batch completed in {elapsed_time:.1f}s (>= {delay_seconds}s). Processing next batch immediately...")
 
+def generate_subtitles_step(audio_dir, srt_dir, max_workers=10, delay_seconds=90):
+    """Step 2: Generate SRT subtitles from audio.
+    
+    Args:
+        audio_dir: Path to the audio file
+        srt_dir: Path where SRT file will be saved
+    """
+    print(f"📝 Generating subtitles from '{audio_dir}'...")
+    
+    if not os.path.exists(audio_dir):
+        raise FileNotFoundError(f"Audio file not found: {audio_dir}")
+    
+    # Get all audio files in the directory
+    file_names = os.listdir(audio_dir)
+    file_names.sort()
+
+    # Create tasks for each audio file
+    tasks = []
+    for file_name in file_names:
+        if file_name.endswith('.wav'):
+            audio_file_path = os.path.join(audio_dir, file_name)
+
+            srt_file_path = f"{os.path.splitext(file_name)[0]}.srt"
+            srt_output_path = os.path.join(srt_dir, srt_file_path)
+            tasks.append((audio_file_path, srt_output_path))
+
+            # print(f"Audio file: {audio_file_path}")
+
+    if not tasks:
+        print("❌ No audio files found in the directory.")
+        return
+
+    # Process files in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for i, task_args in enumerate(tasks):
             print(f"🚀 Starting task {i+1}/{len(tasks)}: {os.path.basename(task_args[0])}")
-            future = executor.submit(generate_audio_from_text, *task_args)
+
+            future = executor.submit(generate_subtitles, task_args[0], task_args[1])
             futures.append((future, task_args[0]))
+
+            # Add delay to avoid rate limits
             if (i + 1) % max_workers == 0 and (i + 1) < len(tasks):
                 print(f"⏳ Waiting {delay_seconds} seconds to avoid rate limit...")
                 time.sleep(delay_seconds)
 
-        for future, text_file_path in futures:
+        for future, audio_file_path in futures:
             try:
                 future.result()
-                print(f"✅ Audio generated successfully for: {text_file_path}")
+                print(f"✅ Subtitles generated successfully for: {audio_file_path}")
             except Exception as e:
-                print(f"❌ Error generating audio for {text_file_path}: {e}")
+                log_gemini_error(e, context="generating subtitles", file_path=audio_file_path)
 
-    print(f"✅ Audio generated successfully: {output_dir}")
-
-def generate_subtitles_step(audio_path, output_srt_path):
-    """Step 2: Generate SRT subtitles from audio.
-    
-    Args:
-        audio_path: Path to the audio file
-        output_srt_path: Path where SRT file will be saved
-    """
-    print(f"📝 Step 2: Generating subtitles from '{audio_path}'...")
-    
-    if not os.path.exists(audio_path):
-        raise FileNotFoundError(f"Audio file not found: {audio_path}")
-    
-    # Generate subtitles using the subtitles_gen module
-    generate_subtitles(
-        audio_path=audio_path,
-        output_path=output_srt_path
-    )
-    
-    print(f"✅ Subtitles generated successfully: {output_srt_path}")
+    print(f"✅ All subtitles generated successfully: {srt_dir}")
 
 def create_video_step(image_path, srt_path, audio_path, output_video_path, 
                      duration=None, dimensions=(1920, 1080), fps=24):
@@ -263,11 +308,11 @@ def main():
         sys.exit(1)
     
     # Set up environment
-    try:
-        setup_environment()
-    except ValueError as e:
-        print(f"❌ Environment setup error: {e}")
-        sys.exit(1)
+    # try:
+    #     setup_environment()
+    # except ValueError as e:
+    #     print(f"❌ Environment setup error: {e}")
+    #     sys.exit(1)
     
     # Create the complete video
     create_complete_video(

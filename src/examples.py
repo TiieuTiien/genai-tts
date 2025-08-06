@@ -6,38 +6,37 @@ using the modular approach.
 """
 
 import os
-from main import create_complete_video, generate_audio_step, generate_subtitles_step, setup_environment, create_video_step
+from main import generate_audio_step, generate_subtitles_step, setup_environment
 
 def example_individual_modules():
     """Example of using individual modules separately."""
     print("🎬 Example: Individual module usage")
     
-    from genai_tts import generate_audio_from_text
-    from subtitles_gen import generate_subtitles
-    from editor import create_video_with_subtitles
-    
     # Set up environment
-    setup_environment()    
-    output_dir="../media/truyen/MDSXQLNPGNC"
+    # setup_environment()    
+    results_dir = "../results/MDSXQLNPLGNC/"
+    input_dir = os.path.join(results_dir, "texts")
+    audio_dir = os.path.join(results_dir, "audios")
+    srt_dir   = os.path.join(results_dir, "subtitles")
 
-    
     # Step 1: Generate audio
-    # print("Generating audio...")
-    # generate_audio_from_text(
-    #     text_file_path="../content/contents/sample1.txt",
-    #     output_path=audio_path,
-    #     voice_name="Gacrux"
-    # )
-    
-
-    audio_dir = os.path.join(output_dir, "audios")
-    srt_dir = os.path.join(output_dir, "subtitles")
-    # Step 2: Generate subtitles
-    print("Generating subtitles...")
-    generate_subtitles_step(
-        audio_dir=audio_dir,
-        srt_dir=srt_dir
+    print("Generating audio...")
+    generate_audio_step(
+        input_dir=input_dir,
+        output_dir=audio_dir,
+        max_workers=10,
+        delay_seconds=180,
+        voice_name="Leda"
     )
+    
+    # Step 2: Generate subtitles
+    # print("Generating subtitles...")
+    # generate_subtitles_step(
+    #     audio_dir=audio_dir,
+    #     srt_dir=srt_dir,
+    #     max_workers=10,
+    #     delay_seconds=120
+    # )
     
     # Step 3: Create video
     # print("Creating video...")
@@ -51,7 +50,7 @@ def example_individual_modules():
     #     fps=24,
     # )
     
-    print(f"✅ Individual modules video created: {output_dir}")
+    print(f"✅ Individual modules video created: {results_dir}")
 
 if __name__ == "__main__":
     print("🚀 GenAI TTS Video Pipeline Examples\n")
